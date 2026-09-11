@@ -29,6 +29,7 @@ def main():
         for tenant in ('acme','globex','umbra'):
             db.execute(text("select set_config('app.current_tenant_id', :tenant, true)"), {'tenant':str(IDS[tenant])})
             db.add(TenantUsage(tenant_id=IDS[tenant],resource='active_projects',used=1 if tenant != 'umbra' else 0))
+            db.flush()
         db.commit()
         print('Seeded 3 tenants, 5 users, memberships, and deterministic projects. Password: demo-password')
 if __name__=='__main__': main()
