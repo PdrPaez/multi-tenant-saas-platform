@@ -19,7 +19,9 @@ def main():
         for key,email,name in users: db.add(User(id=IDS[key],email=email,display_name=name,password_hash=hash_password('demo-password')))
         tenants=[('acme','acme','Acme Labs','starter'),('globex','globex','Globex Cloud','pro'),('umbra','umbra','Umbra Studio','starter')]
         for key,slug,name,plan in tenants: db.add(Tenant(id=IDS[key],slug=slug,display_name=name,plan_tier=plan))
+        db.flush()
         for user,tenant,role in [('alice','acme','owner'),('bob','acme','member'),('vera','acme','viewer'),('carol','globex','owner'),('sam','acme','admin'),('sam','globex','member')]: db.add(Membership(user_id=IDS[user],tenant_id=IDS[tenant],role=role))
+        db.flush()
         for key,tenant,name in [('acme-project','acme','Acme Control Plane'),('globex-project','globex','Globex Analytics')]: db.add(Project(id=IDS[key],tenant_id=IDS[tenant],name=name,description='Seeded tenant-owned project',created_by_user_id=IDS['alice' if tenant=='acme' else 'carol']))
         for tenant in ('acme','globex','umbra'): db.add(TenantUsage(tenant_id=IDS[tenant],resource='active_projects',used=1 if tenant != 'umbra' else 0))
         db.commit()
