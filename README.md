@@ -53,8 +53,9 @@ Application RBAC answers “may this member perform this operation?” RLS answe
 
 ## Local execution
 
+Install PostgreSQL 16+ natively and create a database named `saas_demo`. Run `scripts/bootstrap-postgres.sql` once as a PostgreSQL superuser, then configure the two connection URLs from `.env.example` (or run `scripts/setup-postgres.ps1`).
+
 ```powershell
-docker compose up -d db
 cd backend
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
@@ -102,7 +103,7 @@ Not Auth0/Keycloak, billing, a full SaaS starter, generic IAM/policy-as-code, pr
 
 | Phase | Cards | Outcome |
 | --- | --- | --- |
-| Foundation | MTS-001–005 | Git, Docker PostgreSQL, FastAPI/React, Alembic schema |
+| Foundation | MTS-001–005 | Git, native PostgreSQL, FastAPI/React, Alembic schema |
 | Trust boundaries | MTS-006–011 | Argon2/JWT, tenant context, membership, roles, runtime DB role, RLS |
 | SaaS controls | MTS-012–020 | Projects, RBAC, quotas, features, audit, traces, probes, evaluation |
 | Explorer UX | MTS-021–026 | Dashboard, flow templates, XYFlow canvas, inspector, timeline, replay |
@@ -110,3 +111,4 @@ Not Auth0/Keycloak, billing, a full SaaS starter, generic IAM/policy-as-code, pr
 
 Detailed decisions and threat model live in [`docs/`](docs/).
 
+Docker is intentionally not part of the local workflow. PostgreSQL remains mandatory because SQLite cannot execute or prove the required RLS policies.

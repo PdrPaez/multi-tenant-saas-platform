@@ -9,7 +9,16 @@ from sqlalchemy.orm import Session
 from app.auth import current_user, issue_token, verify_password
 from app.config import settings
 from app.database import db_session, engine, set_tenant
-from app.models import AuditEvent, Membership, Project, Tenant, TenantFeature, User
+from app.models import (
+    AuditEvent,
+    Membership,
+    Project,
+    RequestTrace,
+    RequestTraceStep,
+    Tenant,
+    TenantFeature,
+    User,
+)
 from app.security import Permission, require_permission
 from app.tenancy import tenant_context
 
@@ -89,3 +98,22 @@ def probe(probe_id:str,ctx=Depends(tenant_context),db:Session=Depends(db_session
     if probe_id=='cross_tenant_resource': result['evidence'].update({'expected_status':404,'visible_rows':0})
     if probe_id=='tenant_header_without_membership': result['passed']=False; result['evidence']['expected']='membership denial before database query'
     audit(ctx,db,'security.probe','allowed',resource='probe',metadata=result);db.commit();return result
+
+@app.get('/api/traces/{trace_id}')
+def get_trace(trace_id: UUID, ctx=Depends(tenant_context), db: Session=Depends(db_session)):
+    require_permission(ctx, Permission.TENANT_READ); set_tenant(db, str(ctx['tenant'].id))
+    trace=db.scalar(select(RequestTrace).where(RequestTrace.id==trace_id, RequestTrace.tenant_id==ctx['tenant'].id))
+    if not trace: raise HTTPException(404, detail={'code':'resource_not_found','message':'Trace not found'})
+    steps=db.scalars(select(RequestTraceStep).where(RequestTraceStep.trace_id==trace_id).order_by(RequestTraceStep.step_order)).all()
+    return {'trace_id':str(trace.id),'status_code':trace.status_code,'outcome':trace.outcome,'steps':[{'name':s.name,'state':s.state,'metadata':s.metadata_,'duration_ms':s.duration_ms} for s in steps]}
+
+@app.post('/api/demo/reset')
+def reset_demo(user=Depends(current_user)):
+    if not settings.demo_mode: raise HTTPException(404, detail={'code':'demo_probe_disabled','message':'Demo reset disabled'})
+    return {'status':'reset_required','message':'Run python -m app.seed with administrative database credentials'}
+
+@app.post('/api/evaluation/run')
+def evaluation_api(user=Depends(current_user)):
+    if not settings.demo_mode: raise HTTPException(404, detail={'code':'demo_probe_disabled','message':'Evaluation disabled'})
+    from app.evaluation.run import evaluate
+    return evaluate()

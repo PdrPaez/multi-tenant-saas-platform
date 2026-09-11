@@ -3,20 +3,13 @@ on: [push, pull_request]
 jobs:
   backend:
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16
-        env: {POSTGRES_PASSWORD: postgres, POSTGRES_DB: saas_demo}
-        ports: ['5432:5432']
-        options: >-
-          --health-cmd="pg_isready -U postgres -d saas_demo" --health-interval 10s --health-timeout 5s --health-retries 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: {python-version: '3.12'}
-      - run: pip install -e '.[dev]'
-        working-directory: backend
-      - run: alembic upgrade head && python -m app.seed && ruff check . && pytest && python -m app.evaluation.run
+      - run: sudo apt-get update && sudo apt-get install -y postgresql-16 postgresql-client-16 && sudo systemctl start postgresql
+      - run: sudo -u postgres psql -c "CREATE DATABASE saas_demo;" && sudo -u postgres psql -d saas_demo -f scripts/bootstrap-postgres.sql
+      - run: pip install -e '.[dev]' && alembic upgrade head && python -m app.seed && ruff check . && pytest && python -m app.evaluation.run
         working-directory: backend
   frontend:
     runs-on: ubuntu-latest
@@ -26,4 +19,3 @@ jobs:
         with: {node-version: '20'}
       - run: npm install && npm run lint && npm run build
         working-directory: frontend
-
