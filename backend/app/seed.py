@@ -22,8 +22,13 @@ def main():
         db.flush()
         for user,tenant,role in [('alice','acme','owner'),('bob','acme','member'),('vera','acme','viewer'),('carol','globex','owner'),('sam','acme','admin'),('sam','globex','member')]: db.add(Membership(user_id=IDS[user],tenant_id=IDS[tenant],role=role))
         db.flush()
-        for key,tenant,name in [('acme-project','acme','Acme Control Plane'),('globex-project','globex','Globex Analytics')]: db.add(Project(id=IDS[key],tenant_id=IDS[tenant],name=name,description='Seeded tenant-owned project',created_by_user_id=IDS['alice' if tenant=='acme' else 'carol']))
-        for tenant in ('acme','globex','umbra'): db.add(TenantUsage(tenant_id=IDS[tenant],resource='active_projects',used=1 if tenant != 'umbra' else 0))
+        for key,tenant,name in [('acme-project','acme','Acme Control Plane'),('globex-project','globex','Globex Analytics')]:
+            db.execute(text("select set_config('app.current_tenant_id', :tenant, true)"), {'tenant':str(IDS[tenant])})
+            db.add(Project(id=IDS[key],tenant_id=IDS[tenant],name=name,description='Seeded tenant-owned project',created_by_user_id=IDS['alice' if tenant=='acme' else 'carol']))
+            db.flush()
+        for tenant in ('acme','globex','umbra'):
+            db.execute(text("select set_config('app.current_tenant_id', :tenant, true)"), {'tenant':str(IDS[tenant])})
+            db.add(TenantUsage(tenant_id=IDS[tenant],resource='active_projects',used=1 if tenant != 'umbra' else 0))
         db.commit()
         print('Seeded 3 tenants, 5 users, memberships, and deterministic projects. Password: demo-password')
 if __name__=='__main__': main()
