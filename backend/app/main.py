@@ -53,7 +53,11 @@ def quota(ctx,db):
 def features(ctx,db):
     defaults={'advanced_exports':ctx['tenant'].plan_tier=='pro','audit_viewer':ctx['tenant'].plan_tier=='pro','project_archiving':ctx['tenant'].plan_tier=='pro'}; set_tenant(db,str(ctx['tenant'].id)); overrides={x.feature:x.enabled for x in db.scalars(select(TenantFeature).where(TenantFeature.tenant_id==ctx['tenant'].id)).all()}; return [{'feature':k,'enabled':overrides.get(k,v),'source':'tenant_override' if k in overrides else 'plan_default','plan':ctx['tenant'].plan_tier} for k,v in defaults.items()]
 def audit(ctx,db,action,outcome,resource='project',resource_id=None,metadata=None):
-    set_tenant(db,str(ctx['tenant'].id)); db.add(AuditEvent(id=ctx['trace_id'],tenant_id=ctx['tenant'].id,actor_user_id=ctx['user'].id,action=action,resource_type=resource,resource_id=resource_id,outcome=outcome,metadata_=metadata or {},trace_id=ctx['trace_id']))
+    set_tenant(db,str(ctx['tenant'].id));
+    if not db.get(RequestTrace,ctx['trace_id']): db.add(RequestTrace(id=ctx['trace_id'],tenant_id=ctx['tenant'].id,actor_user_id=ctx['user'].id,status_code=200 if outcome=='allowed' else 403,outcome=outcome))
+    db.add(RequestTraceStep(trace_id=ctx['trace_id'],step_order=1,name='request',state='succeeded',metadata_={'action':action},duration_ms=0.1))
+    db.add(RequestTraceStep(trace_id=ctx['trace_id'],step_order=2,name='audit',state='succeeded',metadata_={'outcome':outcome},duration_ms=0.1))
+    db.add(AuditEvent(id=ctx['trace_id'],tenant_id=ctx['tenant'].id,actor_user_id=ctx['user'].id,action=action,resource_type=resource,resource_id=resource_id,outcome=outcome,metadata_=metadata or {},trace_id=ctx['trace_id']))
 @app.get('/api/quota')
 def get_quota(ctx=Depends(tenant_context),db:Session=Depends(db_session)): return quota(ctx,db)
 @app.get('/api/features')

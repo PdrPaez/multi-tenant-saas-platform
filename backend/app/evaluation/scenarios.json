@@ -1,0 +1,16 @@
+[
+  {"id":"valid_owner_read","expected":"allowed"},
+  {"id":"valid_member_project_create","expected":"allowed"},
+  {"id":"viewer_read","expected":"allowed"},
+  {"id":"viewer_mutation_denied","expected":"permission_denied"},
+  {"id":"missing_jwt","expected":"authentication_required"},
+  {"id":"invalid_jwt","expected":"invalid_token"},
+  {"id":"no_tenant_membership","expected":"tenant_not_available"},
+  {"id":"cross_tenant_project_404","expected":"resource_not_found"},
+  {"id":"unscoped_query_rls","expected":"current_tenant_only"},
+  {"id":"rls_mismatched_insert","expected":"rls_rejected"},
+  {"id":"starter_quota_allowed","expected":"allowed"},
+  {"id":"starter_quota_denied","expected":"quota_exceeded"},
+  {"id":"feature_default_override","expected":"tenant_override"},
+  {"id":"audit_permission_feature_gate","expected":"feature_gate"}
+]

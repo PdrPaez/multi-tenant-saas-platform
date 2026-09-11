@@ -19,7 +19,7 @@ def upgrade():
     CREATE TABLE request_traces (id uuid PRIMARY KEY, tenant_id uuid REFERENCES tenants(id) ON DELETE CASCADE, actor_user_id uuid REFERENCES users(id), status_code int NOT NULL, outcome text NOT NULL, created_at timestamptz NOT NULL DEFAULT now());
     CREATE TABLE request_trace_steps (id bigserial PRIMARY KEY, trace_id uuid REFERENCES request_traces(id) ON DELETE CASCADE, step_order int NOT NULL, name text NOT NULL, state text NOT NULL, metadata jsonb NOT NULL DEFAULT '{}', duration_ms float NOT NULL DEFAULT 0);
     GRANT USAGE ON SCHEMA public TO saas_app;
-    GRANT SELECT, INSERT, UPDATE, DELETE ON users, tenants, memberships, projects, tenant_features, audit_events, request_traces, request_trace_steps TO saas_app;
+    GRANT SELECT, INSERT, UPDATE, DELETE ON users, tenants, memberships, projects, tenant_features, tenant_usage, audit_events, request_traces, request_trace_steps TO saas_app;
     GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO saas_app;
     ALTER TABLE projects ENABLE ROW LEVEL SECURITY; ALTER TABLE projects FORCE ROW LEVEL SECURITY;
     ALTER TABLE tenant_features ENABLE ROW LEVEL SECURITY; ALTER TABLE tenant_features FORCE ROW LEVEL SECURITY; ALTER TABLE tenant_usage ENABLE ROW LEVEL SECURITY; ALTER TABLE tenant_usage FORCE ROW LEVEL SECURITY;

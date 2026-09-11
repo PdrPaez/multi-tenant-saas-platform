@@ -111,4 +111,4 @@ Not Auth0/Keycloak, billing, a full SaaS starter, generic IAM/policy-as-code, pr
 
 Detailed decisions and threat model live in [`docs/`](docs/).
 
-Docker is intentionally not part of the local workflow. PostgreSQL remains mandatory because SQLite cannot execute or prove the required RLS policies.
+Docker is intentionally not part of the local workflow. PostgreSQL remains mandatory because SQLite cannot execute or prove the required RLS policies. The evaluation dataset contains the 14 security scenarios required by the master specification.
