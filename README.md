@@ -93,7 +93,11 @@ npm run build
 
 ## Screenshots
 
-The `docs/screenshots/` folder is reserved for screenshots captured from the running UI during validation. They must be real browser captures, never mockups.
+The screenshots are real captures from the running Vite application, never mockups. Scenario captures must be taken after the native PostgreSQL backend is running so the trace inspector contains persisted evidence.
+
+![Security Explorer UI](docs/screenshots/security-explorer-ui.png)
+
+The capture shows the tenant selector, controlled security lab, XYFlow request canvas, project surface, trace timeline, and replay control.
 
 ## What this is not
 
