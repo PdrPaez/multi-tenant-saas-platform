@@ -2,7 +2,9 @@
 
 The canonical capture is taken from the local Vite application after starting the backend. Captures in this directory must be made with a real browser against the running application and must show the scenario result, persisted trace inspector, and replay state; mockups are not accepted.
 
-Required final capture set once PostgreSQL is available:
+The current shell capture is `metronic-security-console.png`.
+
+Required scenario capture set once PostgreSQL is available:
 
 - `owner-read.png`
 - `viewer-mutation-denied.png`

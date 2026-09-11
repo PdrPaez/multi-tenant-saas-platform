@@ -95,9 +95,9 @@ npm run build
 
 The screenshots are real captures from the running Vite application, never mockups. Scenario captures must be taken after the native PostgreSQL backend is running so the trace inspector contains persisted evidence.
 
-![Security Explorer UI](docs/screenshots/security-explorer-ui.png)
+![Sentinel Security Console](docs/screenshots/metronic-security-console.png)
 
-The capture shows the tenant selector, controlled security lab, XYFlow request canvas, project surface, trace timeline, and replay control.
+The capture shows the Sentinel console layout: fixed navigation, workspace toolbar, tenant context, KPI widgets, controlled security lab, XYFlow request canvas, project table, trace inspector, and replay control.
 
 ## What this is not
 
