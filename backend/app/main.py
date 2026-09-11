@@ -120,7 +120,7 @@ def probe(probe_id:str,ctx=Depends(tenant_context),db:Session=Depends(db_session
         q=quota(ctx,db); result['passed']=q['used'] >= q['limit'] or q['allowed']; result['evidence']['quota']=q
     elif probe_id=='feature_gate_denial':
         flag=next(x for x in features(ctx,db) if x['feature']=='advanced_exports'); result['passed']=not flag['enabled']; result['evidence']['feature']=flag
-    audit(ctx,db,'security.probe','allowed',resource='probe',metadata=result);db.commit();return result
+    audit(ctx,db,'security.probe','allowed',resource='probe',metadata=result); db.commit(); result['trace_id']=str(ctx['trace_id']); return result
 
 @app.get('/api/traces/{trace_id}')
 def get_trace(trace_id: UUID, ctx=Depends(tenant_context), db: Session=Depends(db_session)):
