@@ -8,7 +8,7 @@ jobs:
       - uses: actions/setup-python@v5
         with: {python-version: '3.12'}
       - run: sudo apt-get update && sudo apt-get install -y postgresql-16 postgresql-client-16 && sudo systemctl start postgresql
-      - run: sudo -u postgres psql -c "CREATE DATABASE saas_demo;" && sudo -u postgres psql -d saas_demo -f scripts/bootstrap-postgres.sql
+      - run: sudo -u postgres psql -c "CREATE DATABASE saas_demo;" && sudo -u postgres psql -d saas_demo -f ../scripts/bootstrap-postgres.sql
       - run: pip install -e '.[dev]' && alembic upgrade head && python -m app.seed && ruff check . && pytest && python -m app.evaluation.run
         working-directory: backend
   frontend:
