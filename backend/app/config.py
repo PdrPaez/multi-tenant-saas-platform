@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+
 class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://saas_app:saas_app_password@localhost:5432/saas_demo"
     database_admin_url: str = "postgresql+psycopg://saas_owner:saas_owner_password@localhost:5432/saas_demo"

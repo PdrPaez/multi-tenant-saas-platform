@@ -1,6 +1,10 @@
 import sys
+
 from sqlalchemy import create_engine, text
+
 from app.config import settings
+
+
 def main():
     checks=[]
     engine=create_engine(settings.database_url)

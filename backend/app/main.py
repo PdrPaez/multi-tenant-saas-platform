@@ -1,15 +1,17 @@
 from uuid import UUID
-from fastapi import FastAPI, Depends, HTTPException, Body
+
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from sqlalchemy import select, text, func
+from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
+
+from app.auth import current_user, issue_token, verify_password
 from app.config import settings
-from app.database import db_session, set_tenant, engine
-from app.models import User, Tenant, Membership, Project, TenantFeature, AuditEvent
-from app.auth import current_user, verify_password, issue_token
-from app.tenancy import tenant_context
+from app.database import db_session, engine, set_tenant
+from app.models import AuditEvent, Membership, Project, Tenant, TenantFeature, User
 from app.security import Permission, require_permission
+from app.tenancy import tenant_context
 
 app=FastAPI(title='Multi-Tenant SaaS Platform', version='0.1.0')
 app.add_middleware(CORSMiddleware,allow_origins=[settings.frontend_origin],allow_credentials=True,allow_methods=['*'],allow_headers=['*'])

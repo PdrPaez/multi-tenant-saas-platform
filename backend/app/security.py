@@ -1,5 +1,7 @@
 from enum import StrEnum
+
 from fastapi import HTTPException
+
 
 class Permission(StrEnum):
     TENANT_READ='tenant.read'; PROJECTS_READ='projects.read'; PROJECTS_CREATE='projects.create'; PROJECTS_UPDATE='projects.update'; PROJECTS_DELETE='projects.delete'; FEATURES_READ='features.read'; FEATURES_MANAGE='features.manage'; AUDIT_READ='audit.read'

@@ -1,9 +1,11 @@
 from uuid import UUID
+
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
-from app.config import settings
-from app.models import User, Tenant, Membership, Project, TenantFeature
+
 from app.auth import hash_password
+from app.config import settings
+from app.models import Membership, Project, Tenant, User
 
 IDS={
  'acme':UUID('00000000-0000-0000-0000-000000000001'),'globex':UUID('00000000-0000-0000-0000-000000000002'),'umbra':UUID('00000000-0000-0000-0000-000000000003'),
