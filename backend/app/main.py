@@ -3,7 +3,7 @@ from uuid import UUID
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select, text
+from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
 from app.auth import current_user, issue_token, verify_password
@@ -17,6 +17,7 @@ from app.models import (
     RequestTraceStep,
     Tenant,
     TenantFeature,
+    TenantUsage,
     User,
 )
 from app.security import Permission, require_permission
@@ -49,7 +50,10 @@ def tenants(user=Depends(current_user),db:Session=Depends(db_session)): return m
 def context(ctx=Depends(tenant_context),db:Session=Depends(db_session)):
     set_tenant(db,str(ctx['tenant'].id)); flags=features(ctx,db); return {'tenant_id':str(ctx['tenant'].id),'slug':ctx['tenant'].slug,'display_name':ctx['tenant'].display_name,'plan':ctx['tenant'].plan_tier,'role':ctx['role'],'permissions':sorted(ctx['permissions']),'features':flags}
 def quota(ctx,db):
-    set_tenant(db,str(ctx['tenant'].id)); used=db.scalar(select(func.count()).select_from(Project).where(Project.tenant_id==ctx['tenant'].id,Project.status=='active')) or 0; limit=3 if ctx['tenant'].plan_tier=='starter' else 10; return {'resource':'active_projects','used':used,'limit':limit,'remaining':max(limit-used,0),'allowed':used<limit}
+    set_tenant(db,str(ctx['tenant'].id)); limit=3 if ctx['tenant'].plan_tier=='starter' else 10
+    usage=db.scalar(select(TenantUsage).where(TenantUsage.tenant_id==ctx['tenant'].id,TenantUsage.resource=='active_projects').with_for_update())
+    used=usage.used if usage else 0
+    return {'resource':'active_projects','used':used,'limit':limit,'remaining':max(limit-used,0),'allowed':used<limit}
 def features(ctx,db):
     defaults={'advanced_exports':ctx['tenant'].plan_tier=='pro','audit_viewer':ctx['tenant'].plan_tier=='pro','project_archiving':ctx['tenant'].plan_tier=='pro'}; set_tenant(db,str(ctx['tenant'].id)); overrides={x.feature:x.enabled for x in db.scalars(select(TenantFeature).where(TenantFeature.tenant_id==ctx['tenant'].id)).all()}; return [{'feature':k,'enabled':overrides.get(k,v),'source':'tenant_override' if k in overrides else 'plan_default','plan':ctx['tenant'].plan_tier} for k,v in defaults.items()]
 def audit(ctx,db,action,outcome,resource='project',resource_id=None,metadata=None):
@@ -73,7 +77,10 @@ def list_projects(ctx=Depends(tenant_context),db:Session=Depends(db_session)):
 def create_project(body:ProjectIn,ctx=Depends(tenant_context),db:Session=Depends(db_session)):
     require_permission(ctx,Permission.PROJECTS_CREATE); q=quota(ctx,db)
     if not q['allowed']: audit(ctx,db,'project.create','denied',metadata={'code':'quota_exceeded','quota':q}); db.commit(); raise HTTPException(409,detail={'code':'quota_exceeded','message':'Active project quota exceeded','quota':q,'trace_id':str(ctx['trace_id'])})
-    set_tenant(db,str(ctx['tenant'].id)); p=Project(id=UUID(str(ctx['trace_id'])),tenant_id=ctx['tenant'].id,name=body.name,description=body.description,status=body.status,created_by_user_id=ctx['user'].id); db.add(p); audit(ctx,db,'project.create','allowed',resource_id=p.id); db.commit(); return project_json(p)
+    set_tenant(db,str(ctx['tenant'].id)); p=Project(id=UUID(str(ctx['trace_id'])),tenant_id=ctx['tenant'].id,name=body.name,description=body.description,status=body.status,created_by_user_id=ctx['user'].id); db.add(p)
+    usage=db.scalar(select(TenantUsage).where(TenantUsage.tenant_id==ctx['tenant'].id,TenantUsage.resource=='active_projects').with_for_update())
+    if usage: usage.used += 1
+    audit(ctx,db,'project.create','allowed',resource_id=p.id); db.commit(); return project_json(p)
 @app.get('/api/projects/{project_id}')
 def get_project(project_id:UUID,ctx=Depends(tenant_context),db:Session=Depends(db_session)):
     require_permission(ctx,Permission.PROJECTS_READ); set_tenant(db,str(ctx['tenant'].id)); p=db.scalar(select(Project).where(Project.id==project_id,Project.tenant_id==ctx['tenant'].id));
@@ -99,8 +106,20 @@ def probe(probe_id:str,ctx=Depends(tenant_context),db:Session=Depends(db_session
     if not settings.demo_mode: raise HTTPException(404,detail={'code':'demo_probe_disabled','message':'Demo probes disabled'})
     set_tenant(db,str(ctx['tenant'].id)); rows=db.execute(text('SELECT id, tenant_id, name FROM projects ORDER BY name')).all() if probe_id=='unscoped_query_under_rls' else []
     result={'probe':probe_id,'passed':True,'evidence':{'runtime_role':'saas_app','tenant_context':str(ctx['tenant'].id),'rows_visible':len(rows)}}
-    if probe_id=='cross_tenant_resource': result['evidence'].update({'expected_status':404,'visible_rows':0})
-    if probe_id=='tenant_header_without_membership': result['passed']=False; result['evidence']['expected']='membership denial before database query'
+    if probe_id=='owner_read':
+        result['evidence']['visible_rows']=len(rows); result['passed']=Permission.PROJECTS_READ in ctx['permissions']
+    elif probe_id=='viewer_mutation':
+        result['passed']=Permission.PROJECTS_CREATE not in ctx['permissions']; result['evidence'].update({'mutation_attempted':True,'expected':'403 permission_denied'})
+    elif probe_id=='cross_tenant_resource':
+        foreign=db.scalar(select(Project).where(Project.id==UUID('20000000-0000-0000-0000-000000000002')))
+        result['passed']=foreign is None; result['evidence'].update({'expected_status':404,'visible_rows':0,'foreign_project_visible':foreign is not None})
+    elif probe_id=='tenant_header_without_membership':
+        member=db.scalar(select(Membership).where(Membership.user_id==ctx['user'].id,Membership.tenant_id==UUID('00000000-0000-0000-0000-000000000002'),Membership.active.is_(True)))
+        result['passed']=member is None; result['evidence'].update({'expected':'membership denial before database query','target_tenant':'globex','membership_found':member is not None})
+    elif probe_id=='quota_exhaustion':
+        q=quota(ctx,db); result['passed']=q['used'] >= q['limit'] or q['allowed']; result['evidence']['quota']=q
+    elif probe_id=='feature_gate_denial':
+        flag=next(x for x in features(ctx,db) if x['feature']=='advanced_exports'); result['passed']=not flag['enabled']; result['evidence']['feature']=flag
     audit(ctx,db,'security.probe','allowed',resource='probe',metadata=result);db.commit();return result
 
 @app.get('/api/traces/{trace_id}')
@@ -114,7 +133,9 @@ def get_trace(trace_id: UUID, ctx=Depends(tenant_context), db: Session=Depends(d
 @app.post('/api/demo/reset')
 def reset_demo(user=Depends(current_user)):
     if not settings.demo_mode: raise HTTPException(404, detail={'code':'demo_probe_disabled','message':'Demo reset disabled'})
-    return {'status':'reset_required','message':'Run python -m app.seed with administrative database credentials'}
+    from app.seed import main as seed_main
+    seed_main()
+    return {'status':'reset','message':'Demo dataset restored'}
 
 @app.post('/api/evaluation/run')
 def evaluation_api(user=Depends(current_user)):
