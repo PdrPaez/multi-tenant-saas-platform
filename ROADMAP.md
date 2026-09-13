@@ -1,6 +1,6 @@
 # Roadmap de entrega
 
-Este roadmap é derivado do `multi-tenant-saas-platform-master-spec.md`. Os cartões são pequenos, verificáveis e mantêm a decisão arquitetural de PostgreSQL nativo, sem Docker.
+Este roadmap documenta a entrega do projeto. Os cartões são pequenos, verificáveis e mantêm a decisão arquitetural de PostgreSQL nativo, sem Docker.
 
 | Fase | Cartões | Critério de aceite | Estado |
 | --- | --- | --- | --- |
