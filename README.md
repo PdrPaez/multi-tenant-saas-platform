@@ -1,5 +1,7 @@
 # Multi-Tenant SaaS Platform
 
+[![CI](https://github.com/PdrPaez/multi-tenant-saas-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/PdrPaez/multi-tenant-saas-platform/actions/workflows/ci.yml)
+
 A reference implementation of tenant isolation with explicit tenant resolution, membership-aware RBAC, PostgreSQL row-level security, quotas, feature gates, audit logging, and a visual security explorer.
 
 > This project treats `X-Tenant-ID` as a request selector, never as proof of authorization. The server resolves the tenant and role from the database on every request, then applies application scoping and PostgreSQL RLS.
